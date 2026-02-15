@@ -42,7 +42,12 @@ client.on("messageCreate", async (message) => {
     if (message.channel.id !== CONFIG.leagueInfoChannelId) return;
 
     // Only react to Snallabot
-    if (!message.author.bot || !message.author.username.toLowerCase().includes("snalla")) return;
+    const authorName = message.author.username.toLowerCase();
+
+if (!message.author.bot) return;
+
+if (!authorName.includes("snalla") && !authorName.includes("spidey")) return;
+
 
     // Extract week number
     const match = message.content.match(/Week\s*(\d+)/i);
