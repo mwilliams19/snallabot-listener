@@ -1,0 +1,13 @@
+{
+  "name": "snallabot-listener",
+  "version": "1.0.0",
+  "description": "Snallabot automation listener",
+  "main": "automation.js",
+  "scripts": {
+    "start": "node automation.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.25.1",
+    "node-cron": "^4.2.1"
+  }
+}
