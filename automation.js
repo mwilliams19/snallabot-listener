@@ -81,21 +81,6 @@ client.on("messageCreate", async (message) => {
 
   return;
 }
- {
-      console.log("League advance message detected");
-
-      if (!workflowRunning) {
-        workflowRunning = true;
-        try {
-          await runWorkflow();
-        } finally {
-          workflowRunning = false;
-        }
-      }
-
-      return;
-    }
-
     //
     // =========================
     // BACKUP TRIGGER
@@ -170,23 +155,107 @@ async function sendSuccessMessage() {
   const channel = await client.channels.fetch(CONFIG.commandChannelId);
   await channel.send("✅ **League automation completed successfully.**");
 }
+//
+// PROGRESS MESSAGE SYSTEM
+//
+async function createProgressMessage() {
+  const channel = await client.channels.fetch(CONFIG.commandChannelId);
+
+  return await channel.send(
+`🏈 **LEAGUE ADVANCE AUTOMATION**
+━━━━━━━━━━━━━━━━━━
+
+⏳ Starting automation...
+`
+  );
+}
+
+async function updateProgress(message, text) {
+  await message.edit(
+`🏈 **LEAGUE ADVANCE AUTOMATION**
+━━━━━━━━━━━━━━━━━━
+
+${text}
+`
+  );
+}
+
 async function runWorkflow() {
   try {
     const channel = await client.channels.fetch(CONFIG.commandChannelId);
 
     console.log("Running advance workflow...");
 
+    // Create progress dashboard
+    const progressMsg = await createProgressMessage();
+
+    //
+    // CLEAR CHANNELS
+    //
+    await updateProgress(progressMsg, "⏳ Clearing old game channels...");
     const clearSuccess = await sendCommandWithRetry(channel, "/game_channels clear");
     if (!clearSuccess) throw new Error("Failed to clear game channels");
+
+    await updateProgress(progressMsg, "✅ Old channels cleared");
+
+    //
+    // CREATE CHANNELS
+    //
+    await updateProgress(progressMsg, `
+✅ Old channels cleared
+⏳ Creating new game channels...
+`);
 
     const createSuccess = await sendCommandWithRetry(channel, "/game_channels create");
     if (!createSuccess) throw new Error("Failed to create game channels");
 
+    await updateProgress(progressMsg, `
+✅ Old channels cleared
+✅ New games created
+`);
+
+    //
+    // POST STANDINGS
+    //
+    await updateProgress(progressMsg, `
+✅ Old channels cleared
+✅ New games created
+⏳ Posting standings...
+`);
+
     const standingsSuccess = await sendCommandWithRetry(channel, "/standings");
     if (!standingsSuccess) throw new Error("Failed to post standings");
 
+    await updateProgress(progressMsg, `
+✅ Old channels cleared
+✅ New games created
+✅ Standings posted
+`);
+
+    //
+    // EXPORT
+    //
+    await updateProgress(progressMsg, `
+✅ Old channels cleared
+✅ New games created
+✅ Standings posted
+⏳ Refreshing league export...
+`);
+
     const exportSuccess = await sendCommandWithRetry(channel, "/export current");
     if (!exportSuccess) throw new Error("Failed to run export");
+
+    //
+    // COMPLETE
+    //
+    await updateProgress(progressMsg, `
+✅ Old channels cleared
+✅ New games created
+✅ Standings posted
+✅ Export complete
+
+🎉 **League ready for next week!**
+`);
 
     await sendSuccessMessage();
 
