@@ -34,30 +34,81 @@ client.once("clientReady", () => {
 });
 
 //
-// REAL-TIME WEEK DETECTION
+// PRODUCTION MULTI-TRIGGER DETECTION
 //
 client.on("messageCreate", async (message) => {
   try {
     // Only watch league info channel
     if (message.channel.id !== CONFIG.leagueInfoChannelId) return;
 
-    // Only react to Snallabot
-    const authorName = message.author.username.toLowerCase();
+    // NEW LINE — add this
+    if (!message.content) return;
 
-if (!message.author.bot) return;
+    // Only react to bots
+    if (!message.author.bot) return;
 
-if (!authorName.includes("snalla") && !authorName.includes("spidey")) return;
+    const content = message.content.toLowerCase();
 
+    console.log("Bot message detected:", message.author.username, message.content);
 
-    // Extract week number
+    //
+    // =========================
+    // PRIMARY TRIGGER
+    // League Advance Message
+    // =========================
+    //
+    if (
+  content.includes("league has advanced") ||
+  content.includes("advanced to week")
+) {
+  console.log("League advance message detected");
+
+  // Try to extract week number from message
+  const weekMatch = message.content.match(/Week\s*(\d+)/i);
+  if (weekMatch) {
+    currentWeek = parseInt(weekMatch[1]);
+    console.log("Week updated from advance message:", currentWeek);
+  }
+
+  if (!workflowRunning) {
+    workflowRunning = true;
+    try {
+      await runWorkflow();
+    } finally {
+      workflowRunning = false;
+    }
+  }
+
+  return;
+}
+ {
+      console.log("League advance message detected");
+
+      if (!workflowRunning) {
+        workflowRunning = true;
+        try {
+          await runWorkflow();
+        } finally {
+          workflowRunning = false;
+        }
+      }
+
+      return;
+    }
+
+    //
+    // =========================
+    // BACKUP TRIGGER
+    // Week Change Detection
+    // =========================
+    //
     const match = message.content.match(/Week\s*(\d+)/i);
     if (!match) return;
 
     const detectedWeek = parseInt(match[1]);
-
     console.log("Detected week message:", detectedWeek);
 
-    // First run setup
+    // First run → set baseline only
     if (currentWeek === null) {
       currentWeek = detectedWeek;
       console.log("Initial week set:", currentWeek);
@@ -70,21 +121,20 @@ if (!authorName.includes("snalla") && !authorName.includes("spidey")) return;
       currentWeek = detectedWeek;
 
       if (!workflowRunning) {
-  workflowRunning = true;
-  try {
-    await runWorkflow();
-  } finally {
-    workflowRunning = false;
-  }
-}
-
-
+        workflowRunning = true;
+        try {
+          await runWorkflow();
+        } finally {
+          workflowRunning = false;
+        }
+      }
     }
 
   } catch (err) {
-    console.log("Message detection error:", err.message);
+    console.log("Detection error:", err);
   }
 });
+
 
 //
 // ADVANCE WORKFLOW
