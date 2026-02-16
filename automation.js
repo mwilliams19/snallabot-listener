@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require("discord.js");
+const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 
 // ================= CONFIG =================
 
@@ -43,6 +43,9 @@ client.on("messageCreate", async (message) => {
 
     // NEW LINE — add this
     if (!message.content) return;
+
+// Ignore old messages (older than 50 seconds)
+if (Date.now() - message.createdTimestamp > 50000) return;
 
     // Only react to bots
     if (!message.author.bot) return;
@@ -156,30 +159,37 @@ async function sendSuccessMessage() {
   await channel.send("✅ **League automation completed successfully.**");
 }
 //
-// PROGRESS MESSAGE SYSTEM
+// PROFESSIONAL EMBED PROGRESS SYSTEM
 //
+
+function buildProgressEmbed(status, step, totalSteps, color = 0xffcc00) {
+  return new EmbedBuilder()
+    .setTitle("🏈 League Advance Automation")
+    .setDescription(`Automated franchise update\nWeek ${currentWeek ?? "?"}`)
+    .addFields(
+      { name: "Status", value: status },
+      { name: "Progress", value: `${step} / ${totalSteps} steps` }
+    )
+    .setColor(color)
+    .setTimestamp();
+}
+
 async function createProgressMessage() {
   const channel = await client.channels.fetch(CONFIG.commandChannelId);
 
-  return await channel.send(
-`🏈 **LEAGUE ADVANCE AUTOMATION**
-━━━━━━━━━━━━━━━━━━
-
-⏳ Starting automation...
-`
+  const embed = buildProgressEmbed(
+    "⏳ Starting automation...",
+    0,
+    4
   );
+
+  return await channel.send({ embeds: [embed] });
 }
 
-async function updateProgress(message, text) {
-  await message.edit(
-`🏈 **LEAGUE ADVANCE AUTOMATION**
-━━━━━━━━━━━━━━━━━━
-
-${text}
-`
-  );
+async function updateProgress(message, status, step, color = 0xffcc00) {
+  const embed = buildProgressEmbed(status, step, 4, color);
+  await message.edit({ embeds: [embed] });
 }
-
 async function runWorkflow() {
   try {
     const channel = await client.channels.fetch(CONFIG.commandChannelId);
@@ -192,55 +202,41 @@ async function runWorkflow() {
     //
     // CLEAR CHANNELS
     //
-    await updateProgress(progressMsg, "⏳ Clearing old game channels...");
+    await updateProgress(progressMsg, "⏳ Clearing old game channels...", 1);
     const clearSuccess = await sendCommandWithRetry(channel, "/game_channels clear");
     if (!clearSuccess) throw new Error("Failed to clear game channels");
 
-    await updateProgress(progressMsg, "✅ Old channels cleared");
+    await updateProgress(progressMsg, "✅ Old channels cleared", 1, 0x00cc66);
 
     //
     // CREATE CHANNELS
     //
-    await updateProgress(progressMsg, `
-✅ Old channels cleared
-⏳ Creating new game channels...
-`);
+    await updateProgress(progressMsg, "⏳ Creating new game channels...", 2);
+
 
     const createSuccess = await sendCommandWithRetry(channel, "/game_channels create");
     if (!createSuccess) throw new Error("Failed to create game channels");
 
-    await updateProgress(progressMsg, `
-✅ Old channels cleared
-✅ New games created
-`);
+    await updateProgress(progressMsg, "✅ New game channels created", 2, 0x00cc66);
+
 
     //
     // POST STANDINGS
     //
-    await updateProgress(progressMsg, `
-✅ Old channels cleared
-✅ New games created
-⏳ Posting standings...
-`);
+    await updateProgress(progressMsg, "⏳ Posting standings...", 3);
+
 
     const standingsSuccess = await sendCommandWithRetry(channel, "/standings");
     if (!standingsSuccess) throw new Error("Failed to post standings");
 
-    await updateProgress(progressMsg, `
-✅ Old channels cleared
-✅ New games created
-✅ Standings posted
-`);
+    await updateProgress(progressMsg, "✅ Standings posted", 3, 0x00cc66);
+
 
     //
     // EXPORT
     //
-    await updateProgress(progressMsg, `
-✅ Old channels cleared
-✅ New games created
-✅ Standings posted
-⏳ Refreshing league export...
-`);
+ await updateProgress(progressMsg, "⏳ Refreshing league export...", 4);
+
 
     const exportSuccess = await sendCommandWithRetry(channel, "/export current");
     if (!exportSuccess) throw new Error("Failed to run export");
@@ -248,14 +244,13 @@ async function runWorkflow() {
     //
     // COMPLETE
     //
-    await updateProgress(progressMsg, `
-✅ Old channels cleared
-✅ New games created
-✅ Standings posted
-✅ Export complete
+await updateProgress(
+  progressMsg,
+  "🎉 League ready for next week!",
+  4,
+  0x00ff00
+);
 
-🎉 **League ready for next week!**
-`);
 
     await sendSuccessMessage();
 
