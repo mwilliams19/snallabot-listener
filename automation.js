@@ -62,8 +62,10 @@ if (Date.now() - message.createdTimestamp > 50000) return;
     //
     if (
   content.includes("league has advanced") ||
-  content.includes("advanced to week")
-) {
+  content.includes("advanced to week") ||
+  content.includes("game channels cleared")
+)
+ {
   console.log("League advance message detected");
 
   // Try to extract week number from message
