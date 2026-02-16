@@ -63,7 +63,7 @@ if (Date.now() - message.createdTimestamp > 50000) return;
     if (
   content.includes("league has advanced") ||
   content.includes("advanced to week") ||
-  content.includes("game channels cleared")
+  content.includes("game_channels clear")
 )
  {
   console.log("League advance message detected");
